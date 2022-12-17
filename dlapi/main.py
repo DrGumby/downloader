@@ -70,7 +70,10 @@ def start_download(download_id: int, url: str):
         download_id (int): Assigned download ID used by DownloadManager.
         url (str): URL to download from.
     """
-    ydl_opts = {"progress_hooks": [lambda d: asyncio.run(yt_dlp_hooks(download_id, d))]}
+    ydl_opts = {
+        "outtmpl": {"default": "%(title)s.%(ext)s"},
+        "progress_hooks": [lambda d: asyncio.run(yt_dlp_hooks(download_id, d))],
+    }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download(url)
 
