@@ -73,6 +73,12 @@ def start_download(download_id: int, url: str):
     ydl_opts = {
         "outtmpl": {"default": "%(title)s.%(ext)s"},
         "progress_hooks": [lambda d: asyncio.run(yt_dlp_hooks(download_id, d))],
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+            }
+        ],
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download(url)
