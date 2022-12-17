@@ -33,12 +33,13 @@ async def yt_dlp_hooks(id: int, ytdl_info: dict()):
 
     async def downloading(id: int, ytdl_info: dict()):
         try:
+            title = ytdl_info["info_dict"]["title"]
             # These fields may be missing, ignore errors
             dl_bytes = ytdl_info["downloaded_bytes"]
             total_bytes = ytdl_info["total_bytes"]
             percentage = int((dl_bytes / total_bytes) * 100)
 
-            await manager.update_download(id, progress=percentage)
+            await manager.update_download(id, progress=percentage, name=title)
 
             logger.debug(
                 f"Downloaded {dl_bytes} out of {total_bytes}, progress: {percentage}"
