@@ -46,6 +46,7 @@ async def audio_postprocessing_hooks(id: int, ytdl_info: dict()):
     else:
         assert False
 
+
 async def progress_hooks(id: int, ytdl_info: dict()):
     """Main hook function handling progress hooks returned by
     yt-dlp module.
@@ -104,7 +105,9 @@ def start_download(download_id: int, url: str):
     ydl_opts = {
         "outtmpl": {"default": "%(title)s.%(ext)s"},
         "progress_hooks": [lambda d: asyncio.run(progress_hooks(download_id, d))],
-        "postprocessor_hooks": [lambda d: asyncio.run(audio_postprocessing_hooks(download_id, d))],
+        "postprocessor_hooks": [
+            lambda d: asyncio.run(audio_postprocessing_hooks(download_id, d))
+        ],
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -116,9 +119,7 @@ def start_download(download_id: int, url: str):
         ydl.download(url)
 
 
-origins = [
-    "*"
-]
+origins = ["*"]
 
 app = FastAPI()
 manager = DownloadManager()
