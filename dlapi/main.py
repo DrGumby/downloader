@@ -123,7 +123,7 @@ async def download_exec(id: int):
         if dl.status != DLStatus.FINISHED or dl.path is None:
             raise HTTPException(status_code=404, detail="File not ready")
 
-        return FileResponse(dl.path)
+        return FileResponse(path=dl.path, filename=dl.path.name)
     except KeyError:
         raise HTTPException(status_code=404, detail="ID not found")
 
