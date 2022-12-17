@@ -15,6 +15,37 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
+async def audio_postprocessing_hooks(id: int, ytdl_info: dict()):
+    """Main postprocessing hook function handling progress hooks
+    returned by a audio extractor postprocessor.
+
+    Args:
+        id (int): ID of the download record inside DownloadManager.
+        ytdl_info (dict): Info returned by yt-dlp.
+    """
+
+    async def finished(id: int, ytdl_info: dict()):
+        dl = await manager.get_download(id)
+
+        output_filepath = Path.cwd() / Path(f"{dl.name}.mp3")
+        await manager.update_download(
+            id=id, status=DLStatus.FINISHED, path=output_filepath
+        )
+        logger.debug(f"Postprocessing finished. Path set to {output_filepath}")
+
+    if ytdl_info["postprocessor"] != "ExtractAudio":
+        logger.debug(f"Skipping postprocessing hook for {ytdl_info['postprocessor']}")
+        return
+
+    if ytdl_info["status"] == "finished":
+        await finished(id, ytdl_info)
+    elif ytdl_info["status"] == "started":
+        pass
+    elif ytdl_info["status"] == "processing":
+        pass
+    else:
+        assert False
+
 async def progress_hooks(id: int, ytdl_info: dict()):
     """Main hook function handling progress hooks returned by
     yt-dlp module.
@@ -73,6 +104,7 @@ def start_download(download_id: int, url: str):
     ydl_opts = {
         "outtmpl": {"default": "%(title)s.%(ext)s"},
         "progress_hooks": [lambda d: asyncio.run(progress_hooks(download_id, d))],
+        "postprocessor_hooks": [lambda d: asyncio.run(audio_postprocessing_hooks(download_id, d))],
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
