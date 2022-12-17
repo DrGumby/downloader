@@ -14,6 +14,7 @@ class DLStatus(str, Enum):
     """Download status enumeration"""
 
     IN_PROGRESS = "IN_PROGRESS"
+    POSTPROCESSING = "POSTPROCESSING"
     FINISHED = "FINISHED"
     ERROR = "ERROR"
 
