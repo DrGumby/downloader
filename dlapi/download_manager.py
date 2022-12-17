@@ -119,6 +119,10 @@ class DownloadManager:
             id (int): ID to be removed.
         """
         async with self.access_lock:
+            dl = self.downloads[id]
+            if dl.path is not None:
+                dl.path.unlink()
+
             del self.downloads[id]
 
         logger.debug(f"Removed download with id: {id}")
