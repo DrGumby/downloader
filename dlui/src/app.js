@@ -4,6 +4,8 @@ const progress_bar = document.querySelector("#progress-bar");
 const progress_bar_block = document.querySelector("#progress-bar-block");
 const error_message = document.querySelector("#error-message");
 const error_message_block = document.querySelector("#error-message-block");
+const postprocessing_block = document.querySelector("#loading-block");
+const postprocessing_loading = document.querySelector("#loading");
 
 convert_button.addEventListener("click", () => {
     console.log(`Sending url: ${url_input.value}`);
@@ -18,6 +20,14 @@ function init_progress() {
 function reset_progress() {
     progress_bar.value = 0;
     progress_bar_block.style.display = "none";
+}
+
+function show_postprocessing() {
+    postprocessing_block.style.display = "block"
+}
+
+function hide_postprocessing() {
+    postprocessing_block.style.display = "none"
 }
 
 function show_error(msg) {
