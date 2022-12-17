@@ -27,7 +27,7 @@ async def yt_dlp_hooks(id: int, ytdl_info: dict()):
     async def finished(id: int, ytdl_info: dict()):
         filename = ytdl_info["filename"]
         await manager.update_download(
-            id, status=DLStatus.FINISHED, progress=100, path=Path(filename)
+            id, status=DLStatus.FINISHED, progress=100, path=(Path.cwd() / Path(filename))
         )
         logger.debug(f"Downloaded to file: {filename}")
 
