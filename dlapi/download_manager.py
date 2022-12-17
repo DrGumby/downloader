@@ -25,6 +25,7 @@ class Download:
 
     id: int
     url: str
+    name: str
     status: DLStatus
     progress: int
     path: Union[Path, None]
@@ -56,6 +57,7 @@ class DownloadManager:
             dl = Download(
                 id=id,
                 url=url,
+                name=None,
                 status=DLStatus.IN_PROGRESS,
                 progress=0,
                 path=None,
@@ -84,6 +86,7 @@ class DownloadManager:
     async def update_download(
         self,
         id: int,
+        name: Union[str, None] = None,
         status: Union[DLStatus, None] = None,
         progress: Union[int, None] = None,
         path: Union[Path, None] = None,
@@ -92,6 +95,7 @@ class DownloadManager:
 
         Args:
             id (int): ID of record to be updated.
+            name (Union[str, None]): Video name to be set (or None for no change).
             status (Union[DLStatus, None]): Status to be set (or None for no change).
             progress (Union[int, None]): Progress to be set (or None for no change).
             path (Union[Path, None]): Path to be set (or None for no change).
@@ -99,6 +103,8 @@ class DownloadManager:
         async with self.access_lock:
             dl: Download = self.downloads[id]
 
+            if name is not None:
+                dl.name = name
             if status is not None:
                 dl.status = status
             if progress is not None:
@@ -110,7 +116,7 @@ class DownloadManager:
             self.downloads[dl.id] = dl
 
         logger.debug(
-            f"Updated download id: {id} with status: {status}, progress: {progress}, path: {path}"
+            f"Updated download id: {id} with name: {name} status: {status}, progress: {progress}, path: {path}"
         )
 
     async def delete_download(self, id: int):
