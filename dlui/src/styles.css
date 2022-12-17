@@ -50,3 +50,24 @@
 #error-message-block {
   display: none;
 }
+
+.loading {
+  border: 5px solid #f3f3f3; /* Light grey */
+  border-top: 5px solid #0485ff; /* Blue */
+  border-radius: 100%;
+  width: 2rem;
+  height: 2rem;
+	margin-left:inherit;
+	margin-right:inherit;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+#loading-block {
+	margin:1rem auto;
+  display: none;
+}
