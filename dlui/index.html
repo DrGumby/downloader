@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Youtube downloader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        :root {
+            font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 24px;
+            font-weight: 400;
+
+            color-scheme: dark;
+            color: rgba(255, 255, 255, 0.87);
+            background-color: #242424;
+
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            place-items: center;
+            min-width: 320px;
+            min-height: 100vh;
+        }
+
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        main>div {
+            padding: 1em;
+        }
+
+        input {
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background-color: #333333;
+            padding: 0.6em 1.2em;
+            width: 70%;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #646cff;
+        }
+
+        button {
+            border-radius: 8px;
+            border: 1px solid transparent;
+            padding: 0.6em 1.2em;
+            font-size: 1em;
+            font-weight: 500;
+            font-family: inherit;
+            background-color: #1a1a1a;
+            cursor: pointer;
+            transition: border-color 0.25s;
+        }
+
+        button:hover {
+            border-color: #646cff;
+        }
+
+        button:focus,
+        button:focus-visible {
+            outline: 4px auto -webkit-focus-ring-color;
+        }
+
+        button:disabled:hover {
+            border-color: transparent;
+            cursor: auto;
+        }
+
+        progress {
+            height: 20px;
+            transition: all 0.5s;
+            border-radius: 8px;
+            width: 100%;
+            background-color: #333333;
+            border: none;
+        }
+
+        #spinner-wheel {
+            border: 5px solid #f3f3f3;
+            /* Light grey */
+            border-top: 5px solid #0485ff;
+            /* Blue */
+            border-radius: 100%;
+            width: 2rem;
+            height: 2rem;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            left: 50%;
+            margin-left: -1em;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>Raspberry Pi Youtube stahovač (v3.1)</h1>
+
+        <div class="input-div">
+            <input placeholder="Youtube adresa" type="text">
+            <button>Stáhni</button>
+        </div>
+
+        <div class="progress-div">
+            <div>
+                <label for="progress-bar">
+                    <p>Stahuji!</p>
+                </label>
+            </div>
+            <progress id="progress-bar" value="0" max="100"></progress>
+        </div>
+
+        <div class="spinner-div">
+            <p> Konvertuji do MP3! </p>
+            <div id="spinner-wheel"></div>
+
+        </div>
+
+        <div class="error-div">
+            <h2>Chyba:</h2>
+            <div id="error-msg"></div>
+        </div>
+    </main>
+</body>
+<script type="module">
+    "use strict";
+    import { parse } from 'content-disposition-attachment';
+
+    const url_input = document.querySelector(".input-div>input");
+    const progress_div = document.querySelector(".progress-div");
+    const progress_bar = progress_div.querySelector("progress");
+    const spinner_div = document.querySelector(".spinner-div");
+    const error_div = document.querySelector(".error-div");
+    const error_msg = error_div.querySelector("#error-msg");
+    const submit_button = document.querySelector(".input-div>button");
+
+    const AppContextData = {
+        state: "init",
+    };
+
+    const StateChangeHandler = {
+        set(target, property, value) {
+            console.log(`Setting state to ${value}`);
+            if (property !== "state") {
+                throw new Error(`Unknown property ${property}`);
+            }
+
+            switch (value) {
+                case "init":
+                    progress_bar.value = 0;
+                    submit_button.disabled = false;
+                    progress_div.hidden = true;
+                    spinner_div.hidden = true;
+                    error_div.hidden = true;
+                    break;
+
+                case "downloading":
+                    submit_button.disabled = true;
+                    progress_div.hidden = false;
+                    spinner_div.hidden = true;
+                    error_div.hidden = true;
+                    break;
+
+                case "postprocessing":
+                    submit_button.disabled = true;
+                    progress_div.hidden = true;
+                    spinner_div.hidden = false
+                    error_div.hidden = true;
+                    break;
+
+                case "error":
+                    submit_button.disabled = false;
+                    progress_div.hidden = true;
+                    spinner_div.hidden = true;
+                    error_div.hidden = false;
+                    break;
+
+                default:
+                    throw new Error(`Unexpected value: ${value}`);
+            }
+            return true;
+        }
+    }
+
+    const AppContext = new Proxy(AppContextData, StateChangeHandler);
+    AppContext.state = "init";
+
+    submit_button.addEventListener("click", () => {
+        console.log(`Sending url: ${url_input.value}`);
+        init_download_job(url_input.value);
+    });
+
+    function init_download_job(url) {
+        fetch("http://localhost:8000/api/download_job", {
+            method: "POST",
+            body: url
+        })
+            .then((res) => {
+                AppContext.state = "downloading";
+                return res.json();
+            })
+            .then((data) => {
+                const job_id = data.id;
+                setTimeout(() => get_download_job_status(job_id), 1000);
+            })
+            .catch((err) => {
+                AppContext.state = "error";
+                error_msg.innerHTML = err;
+            });
+    }
+
+    function get_download_job_status(job_id) {
+        fetch(`http://localhost:8000/api/download_job/${job_id}`, {
+            method: "GET",
+        })
+            .then((res) => {
+                return res.json();
+            })
+            .then((data) => {
+                handle_job_status(job_id, data);
+            })
+            .catch((err) => {
+                AppContext.state = "error";
+                error_msg.innerHTML = err;
+            });
+    }
+
+    function handle_job_status(job_id, download_record) {
+        switch (download_record.status) {
+            case "ERROR":
+                AppContext.state = "error";
+                error_msg.innerHTML = "Unknown backend error, check URL.";
+                break;
+
+            case "STARTED":
+            case "IN_PROGRESS":
+            case "DOWNLOADED":
+                AppContext.state = "downloading";
+                progress_bar.value = download_record.progress;
+                setTimeout(() => get_download_job_status(job_id), 1000);
+                break;
+
+            case "POSTPROCESSING":
+            case "POSTPROCESSING_DONE":
+                AppContext.state = "postprocessing";
+                progress_bar.value = download_record.progress;
+                setTimeout(() => get_download_job_status(job_id), 1000);
+                break;
+
+            case "FINISHED":
+                AppContext.state = "postprocessing"; // We keep state until file download complete
+                progress_bar.value = download_record.progress;
+                const file_id = download_record.downloaded_file_id;
+                get_downloaded_file(file_id);
+                break;
+
+            default:
+                AppContext.state = "error";
+                error_msg.innerHTML = `Received invalid status: ${download_record.status}`;
+                break;
+        }
+    }
+
+    function get_downloaded_file(file_id) {
+        let filename = "";
+        fetch(`http://localhost:8000/api/downloaded_file/${file_id}`, {
+            method: "GET",
+        })
+            .then((res) => {
+                filename = parse(res.headers.get("content-disposition"));
+                return res.blob();
+            })
+            .then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                console.log(filename.filename);
+                link.setAttribute("download", filename.filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                AppContext.state = "init";
+            })
+            .catch((err) => {
+                AppContext.state = "error";
+                error_msg.innerHTML = err;
+            });
+    }
+
+</script>
+
+</html>
